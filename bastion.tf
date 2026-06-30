@@ -42,12 +42,12 @@ resource "aws_instance" "bastion" {
 
   root_block_device {
     volume_size           = var.bastion_root_volume_size
-    volume_type            = "gp3"
+    volume_type           = "gp3"
     delete_on_termination = true
-    encrypted              = true
+    encrypted             = true
   }
 
-  user_data = templatefile("${path.module}/scripts/bastion_bootstrap.sh.tpl", {
+  user_data = templatefile("${path.module}/bastion_bootstrap.sh.tpl", {
     aws_region   = var.aws_region
     cluster_name = var.cluster_name
   })

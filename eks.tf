@@ -36,7 +36,11 @@ module "eks" {
 
       disk_size = var.node_volume_size
 
-      # Equivalent to: --ssh-access --ssh-public-key=eksss
+      # Disable launch template behavior entirely so remote_access can be passed directly to EKS.
+      create_launch_template     = false
+      use_custom_launch_template = false
+
+      # Equivalent to: --ssh-access --ssh-public-key=abcd
       remote_access = {
         ec2_ssh_key               = var.key_pair_name
         source_security_group_ids = [aws_security_group.bastion_sg.id]
@@ -45,12 +49,12 @@ module "eks" {
       # Equivalent to: --asg-access --external-dns-access
       #                --full-ecr-access --appmesh-access --alb-ingress-access
       iam_role_additional_policies = {
-        AmazonEKSWorkerNodePolicy          = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-        AmazonEKS_CNI_Policy               = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+        AmazonEKSWorkerNodePolicy            = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        AmazonEKS_CNI_Policy                 = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
         AmazonEC2ContainerRegistryFullAccess = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-        AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-        ElasticLoadBalancingFullAccess     = "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
-        AutoScalingFullAccess              = "arn:aws:iam::aws:policy/AutoScalingFullAccess"
+        AmazonEC2ContainerRegistryReadOnly   = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+        ElasticLoadBalancingFullAccess       = "arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess"
+        AutoScalingFullAccess                = "arn:aws:iam::aws:policy/AutoScalingFullAccess"
       }
 
       labels = {

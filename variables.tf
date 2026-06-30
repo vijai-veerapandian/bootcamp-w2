@@ -34,7 +34,7 @@ variable "bastion_root_volume_size" {
 variable "key_pair_name" {
   description = "Existing EC2 key pair name for SSH access to the bastion host"
   type        = string
-  default     = "eksss"
+  default     = "abcd"
 }
 
 variable "ssh_allowed_cidr" {
