@@ -42,10 +42,49 @@ eksctl version
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # Configure kubectl to talk to the cluster created by Terraform automatically
-# (Terraform already created the cluster — this just wires up local kubeconfig)
-echo "export AWS_REGION=${aws_region}" >> /home/ubuntu/.bashrc
-echo "aws eks update-kubeconfig --region ${aws_region} --name ${cluster_name}" >> /home/ubuntu/.bashrc
+# When the instance boots, write kubeconfig for ubuntu and verify cluster access.
+mkdir -p /home/ubuntu/.kube /root/.kube
+chown -R ubuntu:ubuntu /home/ubuntu/.kube
+
+export HOME=/home/ubuntu
+export AWS_DEFAULT_REGION="${aws_region}"
+
+retry_count=0
+until aws eks describe-cluster --region "${aws_region}" --name "${cluster_name}" --query "cluster.status" --output text | grep -q "ACTIVE"; do
+  retry_count=$((retry_count + 1))
+  if [ "$retry_count" -ge 40 ]; then
+    echo "Cluster ${cluster_name} is not ACTIVE after $((retry_count * 15)) seconds. Exiting."
+    exit 1
+  fi
+  echo "Waiting for EKS cluster ${cluster_name} to become ACTIVE... (attempt $retry_count)"
+  sleep 15
+done
+
+sudo -u ubuntu bash -lc "HOME=/home/ubuntu AWS_DEFAULT_REGION=${aws_region} aws eks update-kubeconfig --region ${aws_region} --name ${cluster_name}"
+cp /home/ubuntu/.kube/config /root/.kube/config
+chown ubuntu:ubuntu /home/ubuntu/.kube/config
+chmod 600 /home/ubuntu/.kube/config /root/.kube/config
+
+cat > /etc/profile.d/eks-kubeconfig.sh <<EOF
+export AWS_REGION=${aws_region}
+export KUBECONFIG=/home/ubuntu/.kube/config
+alias k='kubectl'
+EOF
+
+cat > /home/ubuntu/.profile <<EOF
+export AWS_REGION=${aws_region}
+export KUBECONFIG=/home/ubuntu/.kube/config
+alias k='kubectl'
+EOF
+
+cat > /root/.profile <<EOF
+export AWS_REGION=${aws_region}
+export KUBECONFIG=/root/.kube/config
+alias k='kubectl'
+EOF
+
+chown ubuntu:ubuntu /home/ubuntu/.profile
 
 echo "==== Bastion bootstrap completed at $(date) ===="
-echo "Run: aws eks update-kubeconfig --region ${aws_region} --name ${cluster_name}"
-echo "Then: kubectl get nodes"
+echo "kubectl config path: /home/ubuntu/.kube/config"
+echo "Run: kubectl get nodes"

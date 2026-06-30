@@ -31,12 +31,65 @@ resource "aws_security_group" "bastion_sg" {
   }
 }
 
+resource "aws_iam_role" "bastion" {
+  name = "${var.project_name}-bastion-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-bastion-role"
+  }
+}
+
+resource "aws_iam_role_policy" "bastion_eks_read" {
+  name = "${var.project_name}-bastion-eks-read"
+  role = aws_iam_role.bastion.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters",
+          "eks:DescribeNodegroup",
+          "eks:ListNodegroups"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "bastion_ecr_readonly" {
+  role       = aws_iam_role.bastion.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_instance_profile" "bastion" {
+  name = "${var.project_name}-bastion-profile"
+  role = aws_iam_role.bastion.name
+}
+
 resource "aws_instance" "bastion" {
   ami                    = var.bastion_ami_id
   instance_type          = var.bastion_instance_type
   key_name               = var.key_pair_name
   subnet_id              = module.vpc.public_subnets[0]
   vpc_security_group_ids = [aws_security_group.bastion_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.bastion.name
 
   associate_public_ip_address = true
 
@@ -46,6 +99,8 @@ resource "aws_instance" "bastion" {
     delete_on_termination = true
     encrypted             = true
   }
+
+  depends_on = [module.eks]
 
   user_data = templatefile("${path.module}/bastion_bootstrap.sh.tpl", {
     aws_region   = var.aws_region

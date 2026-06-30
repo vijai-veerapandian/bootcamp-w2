@@ -13,7 +13,15 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
 
-  cluster_endpoint_public_access = true
+  cluster_endpoint_public_access           = true
+  enable_cluster_creator_admin_permissions = true
+
+  access_entries = {
+    bastion-admin = {
+      principal_arn = aws_iam_role.bastion.arn
+      type          = "STANDARD"
+    }
+  }
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
