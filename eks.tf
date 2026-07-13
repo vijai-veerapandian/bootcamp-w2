@@ -18,8 +18,9 @@ module "eks" {
 
   access_entries = {
     bastion-admin = {
-      principal_arn = aws_iam_role.bastion.arn
-      type          = "STANDARD"
+      principal_arn     = aws_iam_role.bastion.arn
+      type              = "STANDARD"
+      kubernetes_groups = ["bastion-admin"]
     }
   }
 
@@ -89,5 +90,23 @@ module "eks" {
 
   tags = {
     Name = var.cluster_name
+  }
+}
+
+resource "kubernetes_cluster_role_binding" "bastion_admin" {
+  metadata {
+    name = "${var.cluster_name}-bastion-admin"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = "cluster-admin"
+  }
+
+  subject {
+    kind      = "Group"
+    name      = "bastion-admin"
+    api_group = "rbac.authorization.k8s.io"
   }
 }

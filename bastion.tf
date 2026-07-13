@@ -6,7 +6,7 @@
 # ───────────────────────────────────────────────
 
 resource "aws_security_group" "bastion_sg" {
-  name        = "${var.project_name}-bastion-sg"
+  name        = "${var.cluster_name}-bastion-sg"
   description = "Security group for the bastion/admin host"
   vpc_id      = module.vpc.vpc_id
 
@@ -27,12 +27,12 @@ resource "aws_security_group" "bastion_sg" {
   }
 
   tags = {
-    Name = "${var.project_name}-bastion-sg"
+    Name = "${var.cluster_name}-bastion-sg"
   }
 }
 
 resource "aws_iam_role" "bastion" {
-  name = "${var.project_name}-bastion-role"
+  name = "${var.cluster_name}-bastion-server-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -48,12 +48,12 @@ resource "aws_iam_role" "bastion" {
   })
 
   tags = {
-    Name = "${var.project_name}-bastion-role"
+    Name = "${var.cluster_name}-bastion-server-role"
   }
 }
 
 resource "aws_iam_role_policy" "bastion_eks_read" {
-  name = "${var.project_name}-bastion-eks-read"
+  name = "${var.cluster_name}-bastion-server-eks-read"
   role = aws_iam_role.bastion.id
 
   policy = jsonencode({
@@ -79,7 +79,7 @@ resource "aws_iam_role_policy_attachment" "bastion_ecr_readonly" {
 }
 
 resource "aws_iam_instance_profile" "bastion" {
-  name = "${var.project_name}-bastion-profile"
+  name = "${var.cluster_name}-bastion-profile"
   role = aws_iam_role.bastion.name
 }
 
@@ -108,7 +108,7 @@ resource "aws_instance" "bastion" {
   })
 
   tags = {
-    Name = "${var.project_name}-bastion"
+    Name = "${var.cluster_name}-bastion"
   }
 }
 
