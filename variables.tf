@@ -1,13 +1,13 @@
 variable "aws_region" {
   description = "AWS region to deploy all resources"
   type        = string
-  default     = "ap-south-1"
+  default     = "us-east-1"
 }
 
 variable "project_name" {
   description = "Project name used as a prefix for all resources"
   type        = string
-  default     = "raham"
+  default     = "vijai"
 }
 
 # ───────────────────────────────
@@ -16,7 +16,8 @@ variable "project_name" {
 variable "bastion_ami_id" {
   description = "Ubuntu 22.04 LTS AMI ID for the bastion/admin host (region-specific, update if changing region)"
   type        = string
-  default     = "ami-0e35ddab05955cf57" # Ubuntu 22.04 LTS - ap-south-1 (Mumbai)
+  #default     = "ami-0e35ddab05955cf57" # Ubuntu 22.04 LTS - ap-south-1 (Mumbai)
+  default     = "ami-0f8a61b66d1accaee"  # Ubuntu 24.04 LTS - us-east-1
 }
 
 variable "bastion_instance_type" {
@@ -55,7 +56,7 @@ variable "vpc_cidr" {
 variable "azs" {
   description = "Availability zones to spread the EKS cluster and subnets across"
   type        = list(string)
-  default     = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
+  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
 }
 
 variable "public_subnet_cidrs" {
@@ -76,7 +77,7 @@ variable "private_subnet_cidrs" {
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
-  default     = "raham-cluster"
+  default     = "vijai-cluster"
 }
 
 variable "cluster_version" {
@@ -91,7 +92,7 @@ variable "cluster_version" {
 variable "nodegroup_name" {
   description = "Name of the EKS managed nodegroup"
   type        = string
-  default     = "raham-cluster-ng-1"
+  default     = "vijai-cluster-ng-1"
 }
 
 variable "node_instance_types" {

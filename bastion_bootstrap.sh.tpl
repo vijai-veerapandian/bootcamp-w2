@@ -26,8 +26,8 @@ unzip -o awscliv2.zip
 ./aws/install
 aws --version
 
-# STEP 2b: kubectl installation (matching your specified v1.35.0)
-curl -LO "https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl"
+# STEP 2b: kubectl installation (v1.32.x to match the EKS control plane version)
+curl -fLO "https://dl.k8s.io/release/v1.32.3/bin/linux/amd64/kubectl"
 chmod +x kubectl
 mv kubectl /usr/local/bin/kubectl
 kubectl version --client

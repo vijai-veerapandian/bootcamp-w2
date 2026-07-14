@@ -9,13 +9,13 @@ This Terraform project converts your manual `eksctl` + bash script into fully au
 | VPC + 3 public + 3 private subnets | Required networking (your script relied on default VPC implicitly via eksctl) |
 | Bastion EC2 (Ubuntu, `m7i-flex.large`, 30 GB EBS) | Manual host where you ran Step 1 & Step 2 commands |
 | `user_data` bootstrap script  | STEP-1 (apt update, unzip) + STEP-2 (AWS CLI, kubectl, eksctl install) — now automatic |
-| EKS Cluster (`raham-cluster`, v1.32) | `eksctl create cluster --name=raham-cluster --version 1.32 ...` |
+| EKS Cluster (`vijai-cluster`, v1.32) | `eksctl create cluster --name=vijai-cluster --version 1.32 ...` |
 | IAM OIDC Provider             | `eksctl utils associate-iam-oidc-provider --approve` |
-| EKS Managed Nodegroup         | `eksctl create nodegroup --cluster=raham-cluster ...` |
+| EKS Managed Nodegroup         | `eksctl create nodegroup --cluster=vijai-cluster ...` |
 
 ## Key fixes applied vs. your original script
 
-1. **Removed the second cluster/nodegroup in `us-east-1`** — your script had `raham-cluster2` as the cluster name in the second `eksctl create nodegroup` command, but the `--cluster` flag still pointed to a cluster that doesn't exist there. EKS clusters are also region-bound — a nodegroup cannot span two regions under one cluster. If you genuinely need multi-region, that requires two separate cluster definitions (see "Going multi-region" below).
+1. **Removed the second cluster/nodegroup in `us-east-1`** — your script had `vijai-cluster2` as the cluster name in the second `eksctl create nodegroup` command, but the `--cluster` flag still pointed to a cluster that doesn't exist there. EKS clusters are also region-bound — a nodegroup cannot span two regions under one cluster. If you genuinely need multi-region, that requires two separate cluster definitions (see "Going multi-region" below).
 2. **`t3.micro` → `t3.medium`** for worker nodes. `t3.micro` (1 vCPU, 1 GB RAM) is below the practical minimum for EKS worker nodes — kubelet, kube-proxy, and the CNI plugin alone consume a large share of that memory, leaving little for actual pods.
 3. **Nodes placed in private subnets** — production best practice. Only the bastion host gets a public IP.
 4. **All IAM policies your eksctl flags implied** (`--asg-access`, `--external-dns-access`, `--full-ecr-access`, `--appmesh-access`, `--alb-ingress-access`) are attached as explicit IAM policies on the node IAM role.
@@ -39,7 +39,7 @@ eks-terraform/
 
 1. Terraform >= 1.5.0 installed locally
 2. AWS credentials configured (`aws configure` or environment variables) with permissions to create VPC, EC2, EKS, and IAM resources
-3. An existing EC2 key pair named `eksss` in `ap-south-1` (or update `key_pair_name` in `terraform.tfvars`)
+3. An existing EC2 key pair named `eksss` in `us-east-1` (or update `key_pair_name` in `terraform.tfvars`)
 
 ## One-shot deployment
 
@@ -73,7 +73,7 @@ terraform output
 ssh -i eksss.pem ubuntu@$(terraform output -raw bastion_public_ip)
 
 # On the bastion host, configure kubectl (also auto-added to .bashrc)
-aws eks update-kubeconfig --region ap-south-1 --name raham-cluster
+aws eks update-kubeconfig --region us-east-1 --name vijai-cluster
 
 # Verify nodes are up
 kubectl get nodes
