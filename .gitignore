@@ -4,3 +4,11 @@ terraform.tfstate.backup
 .terraform
 .terraform.lock.hcl
 .env
+*.pem
+terraform.log
+
+# generated / transient
+*tfplan
+iam_policy.json
+alb-controller-iam-policy.json
+pod-identity-trust.json

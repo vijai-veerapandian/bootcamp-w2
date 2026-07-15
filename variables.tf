@@ -17,7 +17,7 @@ variable "bastion_ami_id" {
   description = "Ubuntu 22.04 LTS AMI ID for the bastion/admin host (region-specific, update if changing region)"
   type        = string
   #default     = "ami-0e35ddab05955cf57" # Ubuntu 22.04 LTS - ap-south-1 (Mumbai)
-  default     = "ami-0f8a61b66d1accaee"  # Ubuntu 24.04 LTS - us-east-1
+  default = "ami-0f8a61b66d1accaee" # Ubuntu 24.04 LTS - us-east-1
 }
 
 variable "bastion_instance_type" {
