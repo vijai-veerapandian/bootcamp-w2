@@ -12,3 +12,5 @@ terraform.log
 iam_policy.json
 alb-controller-iam-policy.json
 pod-identity-trust.json
+CLAUDE.md
+terraform.*.backup
