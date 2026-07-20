@@ -11,6 +11,7 @@ Follow them in order.
 | 4 | [04-argocd-argo-rollouts.md](04-argocd-argo-rollouts.md) | ArgoCD + Argo Rollouts, each in its own namespace, ALB exposure |
 | 5 | [05-eks-version-upgrade.md](05-eks-version-upgrade.md) | Production EKS version upgrade — control plane → add-ons → nodes |
 | 6 | [06-backlogs.md](06-backlogs.md) | Backlog — app deploy (HTTPS), Karpenter, KEDA; deferred Qs: external-dns, cert renewal |
+| 7 | [07-ci-cd-app.md](07-ci-cd-app.md) | CI/CD: app → ECR → GitOps (ArgoCD + Argo Rollouts canary) → public HTTPS |
 
 ## Quick path
 1. **Key pair** → doc 1 (must exist in us-east-1 before apply).
