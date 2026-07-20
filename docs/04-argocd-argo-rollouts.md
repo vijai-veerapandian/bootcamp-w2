@@ -123,13 +123,24 @@ kubectl apply -n argo-rollouts \
 kubectl -n argo-rollouts rollout status deploy/argo-rollouts
 
 # B2. kubectl plugin (for `kubectl argo rollouts ...`)
-curl -sLO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
-chmod +x kubectl-argo-rollouts-linux-amd64
-sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+#   Use -fL (fail loudly on 404) not -sLO — a silent 404 saves a 9-byte "Not Found" file
+#   that isn't executable, and `kubectl argo rollouts` then errors 'unknown command "argo"'.
+curl -fL -o kubectl-argo-rollouts \
+  https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+
+# VERIFY the download BEFORE installing:
+ls -lh kubectl-argo-rollouts     # must be ~130M, not a few bytes
+file   kubectl-argo-rollouts     # must say "ELF 64-bit ... executable", not "ASCII text"
+
+chmod +x kubectl-argo-rollouts   # plugins must be executable, or kubectl ignores them
+sudo mv kubectl-argo-rollouts /usr/local/bin/
 
 # B3. Verify
-kubectl argo rollouts version
+kubectl argo rollouts version    # prints client (+ controller) version, e.g. v1.9.1
 ```
+> If B2's `curl` 404s (latest asset moved), pin a version:
+> `curl -fL -o kubectl-argo-rollouts https://github.com/argoproj/argo-rollouts/releases/download/v1.9.1/kubectl-argo-rollouts-linux-amd64`
+> (find the current tag: `curl -s https://api.github.com/repos/argoproj/argo-rollouts/releases/latest | grep tag_name`)
 
 ### B4. (Optional) Rollouts dashboard
 ```bash
