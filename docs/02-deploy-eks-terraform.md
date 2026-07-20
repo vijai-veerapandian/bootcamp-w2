@@ -68,6 +68,11 @@ kubectl get nodes                       # expect 2 nodes, Ready
 > **ORDER MATTERS.** Delete Kubernetes-managed AWS resources (Ingresses/ALBs, LoadBalancer services) **before** `terraform destroy`, or subnet/IGW deletion fails with `DependencyViolation` (the ALB's ENIs pin the subnets).
 
 ```bash
+# 0. delete ArgoCD Applications FIRST — else selfHeal recreates their Ingresses
+#    (skip if you never deployed apps via ArgoCD)
+kubectl -n argocd get applications
+kubectl -n argocd delete application --all
+
 # 1. remove ALBs the LB controller created
 kubectl delete ingress --all --all-namespaces
 kubectl get svc -A | grep LoadBalancer          # delete any found

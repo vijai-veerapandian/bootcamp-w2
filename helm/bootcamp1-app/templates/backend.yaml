@@ -20,6 +20,16 @@ spec:
               value: "https://{{ .Values.ingress.host }}"
           readinessProbe:
             httpGet: { path: /healthz, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            request: { cpu: 100m, memory: 128 Mi }
+            limits:  { cpu: 500m, memory: 256 Mi }
 ---
 apiVersion: v1
 kind: Service
