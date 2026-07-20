@@ -1,10 +1,10 @@
 image:
   backend:
     repository: 840577818615.dkr.ecr.us-east-1.amazonaws.com/bootcamp1-app/backend
-    tag: "8620cbdfa368f2ad68dc20b2d1298fad7e9b9b3a"
+    tag: "49239445ed047f569b81029d8af5422ac214c569"
   frontend:
     repository: 840577818615.dkr.ecr.us-east-1.amazonaws.com/bootcamp1-app/frontend
-    tag: "8620cbdfa368f2ad68dc20b2d1298fad7e9b9b3a"
+    tag: "49239445ed047f569b81029d8af5422ac214c569"
 backend:
   replicas: 2
 frontend:
