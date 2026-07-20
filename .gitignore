@@ -6,11 +6,11 @@ terraform.tfstate.backup
 .env
 *.pem
 terraform.log
+app/
 
 # generated / transient
 *tfplan
 iam_policy.json
-alb-controller-iam-policy.json
 pod-identity-trust.json
 CLAUDE.md
 terraform.*.backup

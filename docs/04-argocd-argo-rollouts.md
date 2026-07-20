@@ -43,7 +43,16 @@ kubectl -n argocd patch configmap argocd-cmd-params-cm --type merge \
   -p '{"data":{"server.insecure":"true"}}'
 kubectl -n argocd rollout restart deploy argocd-server
 ```
-`argocd-ingress.yaml` — host-based below for the Route 53 end-state. **For the no-DNS phase** (raw ALB URL): delete the `host:` line and set `group.name: argocd` so ArgoCD gets its **own** ALB (a hostless Ingress can't share an ALB group with another hostless app):
+`argocd-ingress.yaml` — host-based below (host `argocd.aws.vijaiveerapandian.com`, matching the
+`aws.` delegated subdomain from `03 §E`).
+
+> **Namespace vs. ALB group — don't confuse them.** ArgoCD lives entirely in the **`argocd`
+> namespace** (metadata below). The `alb.ingress.kubernetes.io/group.name` annotation is **not a
+> namespace** — it's just a label telling the LB Controller which physical ALB to use. It's set to
+> **`monitoring`** to match Grafana's Ingress (`03 §D`), so **this project runs a single shared
+> ALB**: ArgoCD rides the same ALB as Grafana, and host-based routing (`grafana.` vs `argocd.`)
+> keeps the two apps separate on it. The group is named `monitoring` only because Grafana claimed
+> the ALB first — treat it as a generic "shared-ALB" label, not monitoring-specific.
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -53,13 +62,16 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: monitoring     # shares the one ALB
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/group.name: monitoring     # SHARED single ALB with Grafana (an ALB group label, NOT a namespace)
+    # HTTPS baked in — same wildcard cert as Grafana (*.aws.vijaiveerapandian.com covers argocd.):
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:840577818615:certificate/<id>
     alb.ingress.kubernetes.io/healthcheck-path: /healthz
 spec:
   ingressClassName: alb
   rules:
-    - host: argocd.vijaiveerapandian.com
+    - host: argocd.aws.vijaiveerapandian.com
       http:
         paths:
           - path: /
@@ -67,17 +79,41 @@ spec:
             backend:
               service:
                 name: argocd-server
-                port: { number: 80 }
+                port:
+                  number: 80              # backend stays 80 — ArgoCD is insecure; ALB terminates TLS
 ```
 ```bash
-kubectl apply -f argocd-ingress.yaml
-kubectl -n argocd get ingress -w      # wait for ADDRESS
+kubectl apply -f argocd-ingress.yaml       # apply (UPDATE) — never delete+recreate; that changes the ALB DNS
+kubectl -n argocd get ingress -w           # wait for ADDRESS
 ```
-Then add a Route 53 Alias A record `argocd.vijaiveerapandian.com` → ALB (see `03` §E), add ACM for HTTPS (§F). Keep `server.insecure=true` — the ALB does TLS.
+Then add a Route 53 Alias A record `argocd` in the **`aws.vijaiveerapandian.com`** zone → the ALB
+(console steps in `03 §E2`). Because `group.name: monitoring` puts ArgoCD on the **same single ALB
+as Grafana**, select the **same `k8s-monitoring-…`** load balancer Grafana uses — both `grafana.`
+and `argocd.` resolve to that one ALB. The wildcard cert from `03 §F` already covers `argocd.`, so
+no new cert is needed. Keep `server.insecure=true` — the ALB does TLS, backend stays HTTP:80.
+
+**Start HTTP-only?** Drop the `ssl-redirect` + `certificate-arn` lines and use
+`listen-ports: '[{"HTTP":80}]'`; add the three HTTPS lines back once the HTTP URL works (mirrors
+`03 §D → §F`).
+
+Verify:
+```bash
+curl -I https://argocd.aws.vijaiveerapandian.com     # 200/307 to the ArgoCD login UI
+curl -I http://argocd.aws.vijaiveerapandian.com      # 301 -> https (ssl-redirect)
+```
+
+> **Gotchas (same as Grafana, see `03 §E`):** the ALB DNS changes on any delete+recreate/rebuild →
+> re-point the Alias. **404** = Ingress `host:` ≠ DNS record name. **503 "Backend service does not
+> exist"** = wrong `backend.service.name` (the ArgoCD server service is `argocd-server` for the Helm
+> release named `argocd`; confirm with `kubectl -n argocd get svc`).
 
 ---
 
 ## B. Argo Rollouts (namespace: `argo-rollouts`)
+
+> **No DNS / no HTTPS / no ALB for Rollouts.** Argo Rollouts is a **controller** (it manages
+> `Rollout` objects for canary/blue-green), not a web app — there's nothing to expose publicly.
+> Its dashboard is **local only** (B4, `localhost:3100`). So no Alias A record and no `:443` here.
 
 ```bash
 # B1. Install controller
@@ -98,6 +134,33 @@ kubectl argo rollouts version
 ### B4. (Optional) Rollouts dashboard
 ```bash
 kubectl argo rollouts dashboard        # http://localhost:3100
+```
+
+---
+
+## C. CloudFront CDN for ArgoCD — OPTIONAL
+
+> **Optional.** ArgoCD is already reachable over HTTPS via the ALB (§A4). CloudFront only adds edge
+> TLS + Shield + a stable domain; skip if you just want it reachable.
+
+Same wizard and settings as Grafana — see **`03 §G`** for the full 6-step walkthrough. Only the
+host and health check differ:
+- **Route 53 managed domain / Domains to serve:** `argocd.aws.vijaiveerapandian.com`
+- **Custom origin:** the same **`k8s-monitoring-…` ALB DNS** (ArgoCD shares that ALB).
+- **Cache policy `CachingDisabled`**, **Origin request policy `AllViewer`**, **Redirect HTTP→HTTPS**,
+  reuse the **`*.aws.vijaiveerapandian.com`** cert (us-east-1).
+
+**ArgoCD-specific notes:**
+- Keep `server.insecure=true` (§A1) — the ALB/CloudFront terminate TLS; backend stays HTTP:80.
+- The **UI** works fine behind CloudFront. The **`argocd` CLI** uses gRPC — if it misbehaves through
+  the CDN, log in with `argocd login argocd.aws.vijaiveerapandian.com --grpc-web`.
+- Same **account-verification** gotcha applies (see `03 §G` Gotchas) — a new/unverified account must
+  be verified by AWS Support before any CloudFront distribution can be created.
+
+Verify:
+```bash
+dig  +short argocd.aws.vijaiveerapandian.com
+curl -I     https://argocd.aws.vijaiveerapandian.com   # Server: CloudFront ; 200/307 -> ArgoCD login
 ```
 
 ---

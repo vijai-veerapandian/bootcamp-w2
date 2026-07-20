@@ -69,7 +69,7 @@ terraform destroy -auto-approve -refresh=false
 ```
 
 ### Cleanups Terraform does NOT handle
-- **EKS Pod Identity associations / IAM roles & policies** created via CLI (see `03-alb-addons-monitoring.md`) — delete manually.
+- **EKS Pod Identity associations / IAM roles & policies** created via CLI (see `03-addons-ingress-dns-tls.md`) — delete manually.
 - Any standalone IAM policy created with `aws iam create-policy`.
 
 ---
