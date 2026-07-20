@@ -1,0 +1,17 @@
+image:
+  backend:
+    repository: 840577818615.dkr.ecr.us-east-1.amazonaws.com/bootcamp1-app/backend
+    tag: "bootstrap"
+  frontend:
+    repository: 840577818615.dkr.ecr.us-east-1.amazonaws.com/bootcamp1-app/frontend
+    tag: "bootstrap"
+
+backend:
+  replicas: 2
+
+frontend:
+  replicas: 2
+
+ingress:
+  host: app.aws.vijaiveerapandian.com
+  certificateArn: arn:aws:acm:us-east-1:840577818615:certificate/d5f6fe91-d0d7-4611-8be4-d7324ebfb45a

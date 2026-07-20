@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels: { app: backend }
+  template:
+    metadata:
+      labels: { app: backend }
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}"
+          ports:
+            - containerPort: 8000
+          env:
+            - name: CORS_ORIGINS
+              value: "https://{{ .Values.ingress.host }}"
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8000 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend          # literal 'backend' so nginx's http://backend:8000 resolves
+spec:
+  selector: { app: backend }
+  ports:
+    - { port: 8000, targetPort: 8000 }

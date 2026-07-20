@@ -1,0 +1,6 @@
+apiVersion: v2
+name: bootcamp1-app
+description: Static frontend ( canary rollout) + FastAPI backend for the EKS bootcamp
+type: application 
+version: 0.1.0
+appVersion: "0.1.0"

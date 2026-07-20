@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1     # Argo Rollouts CRD
+kind: Rollout                         # replaces Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels: { app: frontend }
+  strategy:
+    canary:
+      steps:
+        - setWeight: 25               # 25% of pods on the new version
+        - pause: {}                   # MANUAL gate — waits for Promote in the UI/CLI
+        - setWeight: 50
+        - pause: { duration: 20s }    # TIMED gate — auto-continues after 20s
+        # then 100% automatically
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.image.frontend.repository }}:{{ .Values.image.frontend.tag }}"
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector: { app: frontend }
+  ports:
+    - { port: 8080, targetPort: 8080 }
