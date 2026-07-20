@@ -29,16 +29,28 @@ terraform plan -out=tfplan
 terraform apply tfplan                  # ~15-20 min (control plane + node group)
 ```
 
-### Known flake: ClusterRoleBinding RBAC error
-If apply ends with:
+### (Fixed) ClusterRoleBinding RBAC race
+Older versions of this stack managed a `kubernetes_cluster_role_binding` via the `kubernetes`
+provider, which caused two recurring failures: `apply` ending with `clusterrolebindings ...
+forbidden` (access-entry propagation race → needed a second `apply`), and `destroy` failing with
+`Unauthorized`. **Both are eliminated** — the bastion now gets cluster-admin **natively** via an EKS
+access-policy association in `eks.tf`:
+```hcl
+access_entries = {
+  bastion-admin = {
+    principal_arn = aws_iam_role.bastion.arn
+    type          = "STANDARD"
+    policy_associations = {
+      admin = {
+        policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        access_scope = { type = "cluster" }
+      }
+    }
+  }
+}
 ```
-clusterrolebindings.rbac... is forbidden: User ".../bootcamp-user" cannot create resource "clusterrolebindings"
-```
-This is an ordering race — the EKS access entry granting the creator admin hadn't propagated. **Just re-run:**
-```bash
-terraform apply
-```
-If it persists, confirm the creator got an access entry:
+No kubernetes provider, no ClusterRoleBinding, no race → `apply` and `destroy` run in one shot.
+Confirm access entries any time:
 ```bash
 aws eks list-access-entries --cluster-name vijai-cluster-1 --region us-east-1
 ```
